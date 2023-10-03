@@ -1,0 +1,153 @@
+#+title: Spanning Tree Protocol
+[[https://static-course-assets.s3.amazonaws.com/SCaN6/en/index.html#3.1.2.1][cisco internal link for course content]] // in all fairness use moodle
+
+all programming problems are graph problems.
+
+why do we need stp?
+- acyclic graph loops i.e acyclic -> cyclic
+  due to redundancy.
+
+  like networks are trees until they talk to routers.
+  are they?
+- mac address instability
+  MAC ADDR TABLE UNNECCESSARY ALTERING
+- broadcast storm
+
+Block Redundant Paths.
+bridge protocol data units
+only 1 logical path?
+
+* ports and bridges
+one root bridge.
+that is the switch where we make all the spanning tree decisions are determined
+
+no root port on root bridge
+1 root port on all other switches.
+  root port is wrt lowest cost to get to the root bridge.
+
+designated port -- one per segment -- link between switches
+one is root port or alternate or backup
+root V (alternate or backup)
+
+alternate or backup := rstp only ???????
+
+designated ::= alternate V backup
+all root bridge ports are designated.
+
+* STP algo
+lowerest bridge ID becomes root bridge
+BID := prio ^ extended system id ^ MAC Addr
+
+default prio 32768, and 0 is not involved in election.
+4096n := root bridge
+key function primary
+
+extended system id := vlan number or instance
+
+MAC addr := switch id, uniqueness.
+
+per vlan basis
+
+lowest mac address is determinant for root bridge iff prio is not changed
+
+prio     := 4  bits
+ESysID   := 12 bits
+MAC Addr := 48 bits
+* cost
+accumulative cost to get to the router.
+lower the cost the better
+we can change the cost values if we want on an interface
+* examples
+** algo ex 1
+#+begin_src
+            [s1](g0/1)(RP)
+    (fa0/1)/    \
+          /      \ (g0/2)
+ (fa0/1)[s2]-----[s3]
+        (g0/1)  (g0/1)(RP)
+#+end_src
+s2 :: root bridge
+packet
+| bid     |  prio | vlan | mac  |
+| switch1 | 32768 |    1 | AAAA |
+| switch2 | 24568 |    1 | BBBB |
+| switch3 | 24568 |    1 | CCCC |
+
+
+- step 1 :: elect root bridge
+  check bridge id for each switch
+  s2^s3 have lowest priority
+  use lowest mac
+  s2
+- step 2 :: elect root ports
+  1 root port per non-root bridge
+  s1^s3
+  - cost of links ::
+    gigabit := 4
+    fast ethernet := 19
+
+  s1
+- step 3 :: elect designated ports
+  all ports on root bridge -- designated
+  - s2 ::
+    fa0/1 -- designated
+    g0/1  -- designated
+  1 designated port per segmnet
+  - s1 ^ s3 ::
+    s2<->s1 -- designated
+    s2<->s3 -- designated
+
+thus s2<->s1 edge is blocked
+
+** algo ex 2
+#+begin_src
+            [s1]
+     (g0/1)/    \(g0/2)
+          /      \
+ (g0/1)[s2]-----[s3](g0/2)
+      (g0/3)   (g0/3)
+#+end_src
+| packet                          |
+|---------+-------+-------+-------|
+| bid     | field | field | field |
+| bid     |  prio |  vlan | mac   |
+|---------+-------+-------+-------|
+| switch1 |     0 |     1 | AAAA  |
+| switch2 | 24568 |     1 | DDDD  |
+| switch3 | 24568 |     1 | CCCC  |
+
+root-bridge:: s3
+- step 1 :: elect root bridge
+  - s1      :: out of election
+  - s2 ^ s3 ::
+    prio is same
+    lower MAC is s2
+  - ^ s3
+- step 2 :: elect root ports
+  - s3 :: no root ports
+  - s2^s1 ::
+    s1 :: g0/1 ^ g0/2
+    s2 :: g0/3 ^ g0/2
+
+    s1->s3
+    s2->s3
+    - cost of links ::
+      - s2 ::
+      - s1 ::
+
+- step 3 :: elect designated ports
+  - s3      :: s3::g0/3 ^ s3::g0/2 -- designated
+  - s1 ^ s2 ::
+
+* types of STP protocols
+takes 50 seconds to start
+- 802.1D
+  one network in 1 organization
+- RSTP
+- CST
+- PVST+
+- 802.1D
+  upgrade at 2004
+- 802.1w (RSTP)
+- Rapid PVST+
+- MSTP
